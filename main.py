@@ -7,9 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
-
 import json
-FILENAME = "items.json"
+
+FILENAME = pathlib.Path(__file__).parent.resolve() / "items.json"
 
 # Define the path to the images & sqlite3 database
 images = pathlib.Path(__file__).parent.resolve() / "images"
@@ -71,12 +71,14 @@ class AddItemResponse(BaseModel):
 @app.post("/items", response_model=AddItemResponse)
 def add_item(
     name: str = Form(...),
+    category: str = Form(...),
     db: sqlite3.Connection = Depends(get_db),
 ):
-    if not name:
-        raise HTTPException(status_code=400, detail="name is required")
+    if not name or not category:
+        raise HTTPException(status_code=400, detail="name and category are required")
 
-    insert_item(Item(name=name))
+    new_item = Item(name=name, category=category)
+    insert_item(new_item)
     return AddItemResponse(**{"message": f"item received: {name}"})
 
 
@@ -98,7 +100,7 @@ async def get_image(image_name):
 
 class Item(BaseModel):
     name: str
-
+    category: str
 
 def insert_item(item: Item):
     # STEP 4-2: add an implementation to store an item
@@ -116,3 +118,17 @@ def insert_item(item: Item):
     with open(FILENAME, "w", encoding = "utf-8") as file:
         json.dump(data, file, indent = 2, ensure_ascii = False)
    # pass
+
+@app.get("/items")
+def get_items():
+    # Read the items from the JSON file
+    if os.path.exists(FILENAME):
+        with open(FILENAME, "r", encoding="utf-8") as file:
+            try:
+                data = json.load(file)
+            except json.JSONDecodeError:
+                data = {"items": []}
+    else:
+        data = {"items": []}
+
+    return data
