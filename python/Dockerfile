@@ -16,7 +16,6 @@ RUN addgroup -S mercari && adduser -S trainee -G mercari
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt \
     && rm -rf /root/.cache/pip  # Remove pip cache
 
@@ -24,7 +23,7 @@ COPY main.py ./
 COPY db/items.sql ./db/items.sql
 
 # Ensure correct ownership in a single layer
-RUN chown -R trainee:mercari /app
+RUN mkdir -p /app/images && chown -R trainee:mercari /app/images
 
 USER trainee
 
